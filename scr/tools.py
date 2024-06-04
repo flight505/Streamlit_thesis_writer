@@ -4,7 +4,7 @@ import requests
 
 from pydantic import Field
 from bs4 import BeautifulSoup
-from utils import load_config
+from scr.utils import load_config
 
 load_config(file_path="./config.yaml")
 
