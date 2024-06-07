@@ -1,10 +1,14 @@
 import json
 import os
-import requests
+import time
+from datetime import datetime, timezone
 
-from pydantic import Field
+import requests
+import streamlit as st
 from bs4 import BeautifulSoup
-from scr.utils import load_config
+from pydantic import Field
+
+from scr.utils import get_current_utc_datetime, load_config
 
 load_config(file_path="./config.yaml")
 
@@ -20,7 +24,6 @@ class SearchEngine:
     )
 
     def format_results(self, organic_results):
-
         result_strings = []
         for result in organic_results:
             title = result.get("title", "No Title")
@@ -33,7 +36,6 @@ class SearchEngine:
         return "\n".join(result_strings)
 
     def run(self):
-
         search_url = "https://google.serper.dev/search"
         headers = {
             "Content-Type": "application/json",
@@ -74,7 +76,6 @@ class ScrapeWebsite:
     )
 
     def run(self):
-
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.110 Safari/537.36",
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9",
@@ -107,3 +108,87 @@ class ScrapeWebsite:
             return {
                 self.website_url: f"Failed to retrieve content due to an error: {e}"
             }
+
+
+class PDFToMarkdownConverter:
+    def __init__(self, input_folder, output_folder, log_file="converted_files.json"):
+        self.input_folder = input_folder
+        self.output_folder = output_folder
+        self.log_file = log_file
+
+    def convert(self):
+        self.ensure_directory_exists(self.input_folder)
+        self.ensure_directory_exists(self.output_folder)
+
+        converted_files_log = self.load_converted_files_log()
+        pdf_files = [f for f in os.listdir(self.input_folder) if f.endswith(".pdf")]
+
+        total_files = len(pdf_files)
+        already_converted = sum(
+            1
+            for f in pdf_files
+            if os.path.splitext(f)[0] + ".md" in converted_files_log
+        )
+        to_convert = total_files - already_converted
+
+        with st.spinner("Converting PDF files to Markdown..."):
+            msg = st.toast("Checking for PDF files to convert...", icon="🔎")
+            time.sleep(0.5)
+            if not pdf_files:
+                msg.toast("No PDF files found in the input folder.", icon="👎")
+                st.stop()
+            if to_convert == 0:
+                msg.toast("All PDF files are already converted.", icon="👍")
+            else:
+                msg.toast(
+                    f"Total: {total_files}, Already Converted: {already_converted}, To Convert: {to_convert}"
+                )
+
+            converted_files_count = 0
+            for i, pdf_file in enumerate(pdf_files):
+                if not self.convert_pdf_to_md(pdf_file, converted_files_log):
+                    continue
+                converted_files_count += 1
+            if not to_convert == 0:
+                time.sleep(0.5)
+                st.toast(f"Converting {i+1}/{total_files} files...", icon="☕")
+
+            self.save_converted_files_log(converted_files_log)
+            time.sleep(0.5)
+            if msg is not None:
+                msg.toast(
+                    f"Conversion completed! {total_files} are ready to be used.",
+                    icon="👍",
+                )
+            else:
+                st.toast(
+                    f"Conversion completed! {total_files} are ready to be used.",
+                    icon="👍",
+                )
+
+    def ensure_directory_exists(self, folder_path):
+        if not os.path.exists(folder_path):
+            os.makedirs(folder_path)
+
+    def load_converted_files_log(self):
+        if os.path.exists(self.log_file):
+            with open(self.log_file, "r") as f:
+                return json.load(f)
+        return []
+
+    def convert_pdf_to_md(self, pdf_file, converted_files_log):
+        pdf_path = os.path.join(self.input_folder, pdf_file)
+        md_file = os.path.splitext(pdf_file)[0] + ".md"
+        md_path = os.path.join(self.output_folder, md_file)
+
+        if md_file in converted_files_log:
+            return False
+
+        command = f"marker_single '{pdf_path}' '{md_path}' --batch_multiplier 12 --langs English"
+        os.system(command)
+        converted_files_log.append(md_file)
+        return True
+
+    def save_converted_files_log(self, converted_files_log):
+        with open(self.log_file, "w") as f:
+            json.dump(converted_files_log, f)

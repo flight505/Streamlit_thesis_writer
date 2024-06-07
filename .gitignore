@@ -9,6 +9,12 @@ __pycache__/
 # Keys
 config.yaml
 
+# temp files
+*.md
+*.png
+*.pdf
+*.txt
+
 # Distribution / packaging
 .Python
 build/
@@ -123,3 +129,4 @@ dmypy.json
 
 # Cython debug symbols
 cython_debug/
+

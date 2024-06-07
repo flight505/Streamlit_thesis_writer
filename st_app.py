@@ -1,80 +1,102 @@
+########### Base imports
+import json
+import logging
 import os
+import random
+import re
+import sys
 from datetime import datetime, timezone
+import openai
 
-import bibtexparser
-import chromadb
+####### Streamlit imports
 import streamlit as st
+import streamlit.components.v1 as components
+
+########### Bibtex imports
+import bibtexparser
 from bibtexparser.bparser import BibTexParser
 from bibtexparser.customization import convert_to_unicode
 
-# from chromadb.utils import embedding_function
-from scr.prompts import (
-    manager_description,
-    manager_instructions,
-    mission_statement_prompt,
-    researcher_description,
-    researcher_instructions,
-)
-from scr.tools import ScrapeWebsite, SearchEngine
-from scr.utils import load_config
+########### Icecream and loggings
+from icecream import ic
 
-# Set the environment variable
-os.environ["IN_STREAMLIT"] = "true"
+sys.stdout.reconfigure(encoding="utf-8")
+sys.stdin.reconfigure(encoding="utf-8")
+
+logging.basicConfig(
+    stream=sys.stdout, level=logging.INFO
+)  # logging.DEBUG for more verbose output
+# logging.getLogger().addHandler(logging.StreamHandler(stream=sys.stdout))
+
+####### Streamlit app imports
+from scr.tools import PDFToMarkdownConverter, ScrapeWebsite, SearchEngine
+from scr.utils import get_current_utc_datetime, load_config
+
+################ For OpenAI
+
+from llama_index.llms.openai import OpenAI
+from llama_index.core import Settings
+
+
+# define LLM
+llm = OpenAI(temperature=0, model="gpt-4o")
+
+Settings.llm = llm
+Settings.chunk_size = 512
+
+
+####### Knowledge Graph with NebulaGraphStore
+from llama_index.core import KnowledgeGraphIndex, SimpleDirectoryReader
+from llama_index.core import StorageContext
+from llama_index.graph_stores.nebula import NebulaGraphStore
+
+from llama_index.llms.openai import OpenAI
+from IPython.display import Markdown, display
+
+documents = SimpleDirectoryReader(
+    "../../../../examples/paul_graham_essay/data"
+).load_data()
+
 
 # loads API keys from config.yaml
 load_config(file_path="./config.yaml")
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
 # Define paths
 pdf_folder = "scr/PDFs"
-bib_file = "scr/scr.bib"
+bib_folder = "scr/BIBs"
+# bib_file = "scr/scr.bib"
 md_folder = "scr/MDs"
 chroma_db_path = "scr/scr.chroma"
 
+CODE_KG_RAG = """
 
-def get_current_utc_datetime():
-    now_utc = datetime.now(timezone.utc)
-    current_time_utc = now_utc.strftime("%Y-%m-%d %H:%M:%S %Z")
-    return current_time_utc
+# Build Knowledge Graph with KnowledgeGraphIndex 
 
+kg_index = KnowledgeGraphIndex.from_documents(
+    documents,
+    storage_context=storage_context,
+    max_triplets_per_chunk=10,
+    service_context=service_context,
+    space_name=space_name,
+    edge_types=edge_types,
+    rel_prop_names=rel_prop_names,
+    tags=tags,
+    include_embeddings=True,
+)
 
-# Function to convert all PDFs in a folder to markdown using Marker
-def pdf_to_md(input_folder, output_folder):
-    if not os.path.exists(input_folder):
-        os.makedirs(input_folder)
-    if not os.path.exists(output_folder):
-        os.makedirs(output_folder)
-    pdf_files = [f for f in os.listdir(input_folder) if f.endswith(".pdf")]
-    for pdf_file in pdf_files:
-        pdf_path = os.path.join(input_folder, pdf_file)
-        command = f"marker_single {pdf_path} {output_folder} --batch_multiplier 12 --langs English"
-        os.system(command)
-    os.system(command)
+# Create a Graph RAG Query Engine
 
+kg_rag_query_engine = kg_index.as_query_engine(
+    include_text=False,
+    retriever_mode="keyword",
+    response_mode="tree_summarize",
+)
 
-# Function to create embeddings and ChromaDB
-def create_chroma_db(md_folder, bib_file, db_path):
-    client = chromadb.Client()
-    collection = client.create_collection("academic_papers")
-
-    # Read and parse .bib file
-    with open(bib_file) as bibtex_file:
-        parser = BibTexParser()
-        parser.customization = convert_to_unicode
-        bib_database = bibtexparser.load(bibtex_file, parser=parser)
-
-    for md_file in os.listdir(md_folder):
-        if md_file.endswith(".md"):
-            with open(os.path.join(md_folder, md_file), "r") as f:
-                text = f.read()
-            emb = embedding_function(text)
-            collection.add({"content": text, "embedding": emb})
-
-    client.save(db_path)
+"""
 
 
 def main():
-
     def verify_pdf_folder(pdf_folder):
         if pdf_folder:
             os.makedirs(pdf_folder, exist_ok=True)
@@ -85,27 +107,16 @@ def main():
                 st.error(
                     "The folder contains non-PDF files. Please ensure all files are PDFs."
                 )
-            else:
-                st.success(
-                    "Folder verified! All files are PDFs and at least one PDF exists."
-                )
-            st.success("pdf folder successfully set!")
 
     pdf_folder = st.text_input("Enter PDF folder path:", "scr/PDFs")
     verify_pdf_folder(pdf_folder)
 
     if st.button("Convert PDFs to Markdown"):
         if pdf_folder:
-            pdf_to_md(pdf_folder, md_folder)
-            st.success("Conversion completed!")
+            converter = PDFToMarkdownConverter(pdf_folder, md_folder)
+            converter.convert()
         else:
             st.error("Please upload some PDF files first.")
-
-    manager_instructions_with_datetime = manager_instructions.format(
-        datetime=get_current_utc_datetime()
-    )
-
-    st.write(manager_instructions_with_datetime)
 
 
 if __name__ == "__main__":

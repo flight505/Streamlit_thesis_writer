@@ -1,0 +1,116 @@
+{
+    "languages": [
+        "en"
+    ],
+    "filetype": "pdf",
+    "toc": [
+        {
+            "title": "Genome-wide study of methotrexate clearance replicates SLCO1B1",
+            "level": 0,
+            "is_closed": false,
+            "n_kids": 7,
+            "page_index": 0,
+            "view_mode": "FitH",
+            "view_pos": [
+                696.0
+            ]
+        },
+        {
+            "title": "Introduction",
+            "level": 1,
+            "is_closed": null,
+            "n_kids": 0,
+            "page_index": 0,
+            "view_mode": "FitH",
+            "view_pos": [
+                371.0
+            ]
+        },
+        {
+            "title": "Methods",
+            "level": 1,
+            "is_closed": null,
+            "n_kids": 0,
+            "page_index": 0,
+            "view_mode": "FitH",
+            "view_pos": [
+                360.0
+            ]
+        },
+        {
+            "title": "Results",
+            "level": 1,
+            "is_closed": null,
+            "n_kids": 0,
+            "page_index": 2,
+            "view_mode": "FitH",
+            "view_pos": [
+                360.0
+            ]
+        },
+        {
+            "title": "Discussion",
+            "level": 1,
+            "is_closed": null,
+            "n_kids": 0,
+            "page_index": 3,
+            "view_mode": "FitH",
+            "view_pos": [
+                396.0
+            ]
+        },
+        {
+            "title": "Acknowledgments",
+            "level": 1,
+            "is_closed": null,
+            "n_kids": 0,
+            "page_index": 5,
+            "view_mode": "FitH",
+            "view_pos": [
+                483.0
+            ]
+        },
+        {
+            "title": "Authorship",
+            "level": 1,
+            "is_closed": null,
+            "n_kids": 0,
+            "page_index": 5,
+            "view_mode": "FitH",
+            "view_pos": [
+                582.0
+            ]
+        },
+        {
+            "title": "References",
+            "level": 1,
+            "is_closed": null,
+            "n_kids": 0,
+            "page_index": 5,
+            "view_mode": "FitH",
+            "view_pos": [
+                436.0
+            ]
+        }
+    ],
+    "pages": 7,
+    "ocr_stats": {
+        "ocr_pages": 0,
+        "ocr_failed": 0,
+        "ocr_success": 0,
+        "ocr_engine": "none"
+    },
+    "block_stats": {
+        "header_footer": 14,
+        "code": 0,
+        "table": 2,
+        "equations": {
+            "successful_ocr": 0,
+            "unsuccessful_ocr": 0,
+            "equations": 0
+        }
+    },
+    "postprocess_stats": {
+        "edit": {}
+    }
+}
